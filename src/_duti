@@ -4,15 +4,14 @@
 # -----------
 #
 #  Completion script for duti (https://github.com/moretension/duti),
-#  a macOS command-line tool to set default applications for
-#  document types and URL schemes.
+#  a macOS command-line tool to manage default application
+#  associations for UTIs, URL schemes and file extensions.
 #
-#  Usage reference (duti -h):
-#    duti [-v] <settings file>
-#    duti [-v] -s <bundle id> <uti | extension | mime type> <role>
-#    duti [-v] -x <extension>
-#    duti [-v] -d <bundle id>
-#    duti -h
+#  Usage
+#  -----
+#    duti [ -hvV ] [ -d uti ] [ -l uti ] [ settings_path ]
+#    duti -s bundle_id { uti | url_scheme } [ role ]
+#    duti -x extension
 #
 # ------------------------------------------------------------------------------
 
@@ -24,57 +23,43 @@ _duti_roles() {
     "editor:handle as editor"
     "viewer:handle as viewer"
     "shell:handle as shell/default app"
-    "none:no role"
+    "none:no specific role"
   )
 
   _describe -t roles 'role' roles
 }
 
 _duti_bundle_ids() {
-  local bundles complbundles
+  local -a complbundles
+  local id app
 
   complbundles=()
-  bundles=("${(f)$(mdfind "kMDItemContentType == 'com.apple.application-bundle'" 2>/dev/null | while read -r app; do
+  for app in /Applications/*.app(N) /Applications/*/*.app(N) /System/Applications/*.app(N) ~/Applications/*.app(N); do
     id=$(mdls -name kMDItemCFBundleIdentifier -raw "$app" 2>/dev/null)
-    [[ -n "$id" && "$id" != "(null)" ]] && print -r -- "$id"
-  done | sort -u)}")
-
-  for b in "${bundles[@]}"; do
-    complbundles+=("$b")
+    [[ -n "$id" && "$id" != "(null)" ]] && complbundles+=("$id:${app:t:r}")
   done
 
-  _describe -t complbundles 'Bundle Identifiers' complbundles
+  _describe -t complbundles 'bundle identifier' complbundles
 }
 
 _duti() {
   local curcontext="$curcontext" ret=1
   local -a state line
 
-  _arguments -C -s -S \
-    '(- 1 *)'{-h,--help}'[display usage information]: :->full' \
+  _arguments -C -s \
+    '(- 1 *)'{-h,--help}'[display usage information]' \
+    '(- 1 *)'{-V,--version}'[display version information]' \
     '(-v --verbose)'{-v,--verbose}'[be verbose]' \
-    '(-s -x -d)-s[set default application for UTI, extension or mime type]' \
-    '(-s -x -d)-x[get default application bundle ID for extension]:extension' \
-    '(-s -x -d)-d[delete duti settings for bundle ID]:bundle id:_duti_bundle_ids' \
+    '(-d -l -s -x)-d[delete default application association for a uti]:uti' \
+    '(-d -l -s -x)-l[list default application association for a uti]:uti' \
+    '(-d -l -s -x)-s[set default application for a uti or url scheme]:bundle id:_duti_bundle_ids' \
+    '(-d -l -s -x)-x[get default application bundle id for a file extension]:extension' \
     '1: :->cmds' \
     '*:: :->args' && ret=0
 
   case "$state" in
     (cmds)
-      case "${words[1]}" in
-        (-s)
-          _duti_bundle_ids && ret=0
-          ;;
-        (-x)
-          ret=0
-          ;;
-        (-d)
-          _duti_bundle_ids && ret=0
-          ;;
-        (*)
-          _files -g '*.duti' && ret=0
-          ;;
-      esac
+      _files -g '*.duti' && ret=0
       ;;
     (args)
       case "${words[1]}" in
@@ -84,7 +69,7 @@ _duti() {
               _duti_bundle_ids && ret=0
               ;;
             (3)
-              _message 'UTI, file extension (e.g. .txt) or MIME type' && ret=0
+              _message 'UTI (e.g. public.plain-text) or URL scheme (e.g. http)' && ret=0
               ;;
             (4)
               _duti_roles && ret=0
