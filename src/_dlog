@@ -1,0 +1,11 @@
+# docker日志
+_dlog() {
+    local -a containers
+    # 获取所有正在运行的 docker 容器名
+    containers=( ${(f)"$(docker ps --format '{{.Names}}')"} )
+    
+    local expl
+    _description containers expl '运行中的 Docker 容器'
+    compadd "$expl[@]" -a containers
+}
+compdef _dlog dlog
