@@ -1,17 +1,41 @@
 #compdef duti
 
 _duti() {
-  local -a args
-  args=(
-    '-v[显示详细版本信息/详细输出]'
-    '-x[指定关联扩展名]:extension:'
-    '-d[指定关联 UTI (Uniform Type Identifier)]:UTI:'
-    '-l[打印指定扩展名或 UTI 的当前默认程序配置]'
-    '-s[指定应用的 Bundle ID、UTI/扩展名以及角色 (all/viewer/editor/shell)]:bundle_id\:UTI\:role'
-    '*:file:_files'
-  )
+  local context state state_descr line
+  typeset -A opt_args
 
-  _arguments -s -S $args
+  _arguments -s -S \
+    '(-h)'\-h'[打印帮助信息并退出]' \
+    '(-V)'\-V'[打印版本号并退出]' \
+    '(-v)'\-v'[开启详细输出模式]' \
+    '(-d)'\-d'[显示指定 UTI 的当前默认 Handler]:UTI:' \
+    '(-l)'\-l'[显示指定 UTI 的所有 Handler]:UTI:' \
+    '(-x)'\-x'[显示指定文件扩展名的默认 Handler]:扩展名:' \
+    '(-s)'\-s'[设置默认 Handler]:bundle_id:->set_handler' \
+    '1:配置文件或目录:_files'
+
+  case $state in
+    set_handler)
+      # -s 参数后续的补全逻辑
+      local -a roles
+      roles=(
+        'all:处理该 UTI/扩展名的所有角色'
+        'viewer:仅读取和显示文档'
+        'editor:编辑并保存文档'
+        'shell:可执行该文档'
+        'none:无法打开，仅提供图标'
+      )
+
+      # 检查当前命令行上 -s 后面的参数个数
+      local -a args
+      args=(${(z)BUFFER})
+      
+      # 根据传入参数位置，分别补全 UTI/扩展名 以及 role
+      _alternative \
+        'uti:UTI 或扩展名 (如 public.html / .txt):' \
+        'roles:角色 (role):(($roles))'
+      ;;
+  esac
 }
 
 _duti "$@"
