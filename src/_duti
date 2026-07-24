@@ -1,0 +1,17 @@
+#compdef duti
+
+_duti() {
+  local -a args
+  args=(
+    '-v[显示详细版本信息/详细输出]'
+    '-x[指定关联扩展名]:extension:'
+    '-d[指定关联 UTI (Uniform Type Identifier)]:UTI:'
+    '-l[打印指定扩展名或 UTI 的当前默认程序配置]'
+    '-s[指定应用的 Bundle ID、UTI/扩展名以及角色 (all/viewer/editor/shell)]:bundle_id\:UTI\:role'
+    '*:file:_files'
+  )
+
+  _arguments -s -S $args
+}
+
+_duti "$@"
