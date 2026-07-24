@@ -1,0 +1,114 @@
+#compdef duti
+# ------------------------------------------------------------------------------
+# Description
+# -----------
+#
+#  Completion script for duti (https://github.com/moretension/duti),
+#  a macOS command-line tool to set default applications for
+#  document types and URL schemes.
+#
+#  Usage reference (duti -h):
+#    duti [-v] <settings file>
+#    duti [-v] -s <bundle id> <uti | extension | mime type> <role>
+#    duti [-v] -x <extension>
+#    duti [-v] -d <bundle id>
+#    duti -h
+#
+# ------------------------------------------------------------------------------
+
+_duti_roles() {
+  local roles
+
+  roles=(
+    "all:handle all roles"
+    "editor:handle as editor"
+    "viewer:handle as viewer"
+    "shell:handle as shell/default app"
+    "none:no role"
+  )
+
+  _describe -t roles 'role' roles
+}
+
+_duti_bundle_ids() {
+  local bundles complbundles
+
+  complbundles=()
+  bundles=("${(f)$(mdfind "kMDItemContentType == 'com.apple.application-bundle'" 2>/dev/null | while read -r app; do
+    id=$(mdls -name kMDItemCFBundleIdentifier -raw "$app" 2>/dev/null)
+    [[ -n "$id" && "$id" != "(null)" ]] && print -r -- "$id"
+  done | sort -u)}")
+
+  for b in "${bundles[@]}"; do
+    complbundles+=("$b")
+  done
+
+  _describe -t complbundles 'Bundle Identifiers' complbundles
+}
+
+_duti() {
+  local curcontext="$curcontext" ret=1
+  local -a state line
+
+  _arguments -C -s -S \
+    '(- 1 *)'{-h,--help}'[display usage information]: :->full' \
+    '(-v --verbose)'{-v,--verbose}'[be verbose]' \
+    '(-s -x -d)-s[set default application for UTI, extension or mime type]' \
+    '(-s -x -d)-x[get default application bundle ID for extension]:extension' \
+    '(-s -x -d)-d[delete duti settings for bundle ID]:bundle id:_duti_bundle_ids' \
+    '1: :->cmds' \
+    '*:: :->args' && ret=0
+
+  case "$state" in
+    (cmds)
+      case "${words[1]}" in
+        (-s)
+          _duti_bundle_ids && ret=0
+          ;;
+        (-x)
+          ret=0
+          ;;
+        (-d)
+          _duti_bundle_ids && ret=0
+          ;;
+        (*)
+          _files -g '*.duti' && ret=0
+          ;;
+      esac
+      ;;
+    (args)
+      case "${words[1]}" in
+        (-s)
+          case $CURRENT in
+            (2)
+              _duti_bundle_ids && ret=0
+              ;;
+            (3)
+              _message 'UTI, file extension (e.g. .txt) or MIME type' && ret=0
+              ;;
+            (4)
+              _duti_roles && ret=0
+              ;;
+          esac
+          ;;
+        (*)
+          _default && ret=0
+          ;;
+      esac
+      ;;
+    (*)
+      ;;
+  esac
+
+  return ret
+}
+
+_duti "$@"
+
+# Local Variables:
+# mode: Shell-Script
+# sh-indentation: 2
+# indent-tabs-mode: nil
+# sh-basic-offset: 2
+# End:
+# vim: ft=zsh sw=2 ts=2 et
