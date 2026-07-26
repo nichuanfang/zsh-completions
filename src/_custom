@@ -1,0 +1,5 @@
+#compdef vclear vcp proxy noproxy
+
+_custom() {
+  _files
+}
