@@ -1,0 +1,210 @@
+#compdef npx
+# ------------------------------------------------------------------------------
+# Completion script for npx (part of npm, aliases `npm exec`).
+#
+# npx itself has no fixed subcommand list - it runs whatever package/binary you
+# give it. This script therefore:
+#   1. Completes npx's own flags (--package, -c/--call, -w/--workspace, ...)
+#   2. Suggests candidate commands from:
+#        - ./node_modules/.bin        (already-installed local binaries)
+#        - the npx download cache     (~/.npm/_npx, packages run before)
+#   3. Once a command is chosen, delegates to that command's own zsh
+#      completion function if one is loaded (e.g. _tsc, _eslint, _prisma),
+#      falling back to _default otherwise.
+#   4. Special-cases `npx skills` (vercel-labs/agent-skills), whose full
+#      subcommand/option tree is hand-written below from `skills --help`.
+# ------------------------------------------------------------------------------
+
+_npx() {
+    local curcontext="$curcontext" state line
+    typeset -A opt_args
+
+    _arguments -C \
+        '--package[Specify package spec(s) to install for command execution]:package spec:_npx_commands' \
+        '(-c --call)'{-c,--call}'[Execute a script with the given string as argument]:command string:' \
+        '(-w --workspace)'{-w,--workspace}'[Run in a specific workspace]:workspace:_npx_workspaces' \
+        '(-ws --workspaces)'{-ws,--workspaces}'[Run the command across all workspaces]' \
+        '--include-workspace-root[Include the workspace root when running with -w/-ws]' \
+        '(-h --help)'{-h,--help}'[Show help]' \
+        '1: :->command' \
+        '*:: :->args' \
+        && return 0
+
+    case $state in
+        command)
+            _npx_commands
+            ;;
+        args)
+            case $words[1] in
+                skills)
+                    _npx_skills
+                    ;;
+                *)
+                    # Delegate to the sub-tool's own completion function
+                    # (tsc, eslint, prisma, cowsay, ...) when it's loaded.
+                    if (( $+functions[_${words[1]}] )); then
+                        _${words[1]}
+                    else
+                        _default
+                    fi
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+# Candidate packages/commands for the word right after `npx`:
+#   - executables already installed in ./node_modules/.bin
+#   - binaries cached from a previous npx run in ~/.npm/_npx/*/node_modules/.bin
+_npx_commands() {
+    local -a bins cached candidates
+    local npx_cache="${XDG_CACHE_HOME:-$HOME/.npm}/_npx"
+
+    [[ -d ./node_modules/.bin ]] && bins=(./node_modules/.bin/*(N:t))
+    [[ -d $npx_cache ]] && cached=(${npx_cache}/*/node_modules/.bin/*(N:t))
+
+    candidates=(${(u)bins} ${(u)cached})
+
+    if (( $#candidates )); then
+        _describe -t local-bins 'local executable' candidates
+    else
+        _message 'npm package or command'
+    fi
+}
+
+# Best-effort workspace name completion from the local package.json.
+_npx_workspaces() {
+    local -a wss
+    if [[ -f package.json ]] && (( $+commands[node] )); then
+        wss=(${(f)"$(node -e '
+            try {
+              const p = require("./package.json");
+              const w = p.workspaces;
+              const list = Array.isArray(w) ? w : (w && w.packages) || [];
+              console.log(list.join("\n"));
+            } catch (e) {}
+        ' 2>/dev/null)"})
+    fi
+    _describe -t workspaces 'workspace' wss
+}
+
+# ------------------------------------------------------------------------------
+# npx skills ... (vercel-labs "skills" CLI, run via `skills --help`)
+# ------------------------------------------------------------------------------
+_npx_skills() {
+    local curcontext="$curcontext" state line
+    typeset -A opt_args
+
+    local -a skills_commands
+    skills_commands=(
+        'add:Add a skill package (alias: a)'
+        'a:Add a skill package (alias for add)'
+        'use:Generate a prompt for using one skill without installing it'
+        'remove:Remove installed skills'
+        'rm:Remove installed skills (alias for remove)'
+        'list:List installed skills (alias: ls)'
+        'ls:List installed skills (alias for list)'
+        'find:Search for skills interactively'
+        'update:Update skills to latest versions (alias: upgrade)'
+        'upgrade:Update skills to latest versions (alias for update)'
+        'experimental_install:Restore skills from skills-lock.json'
+        'init:Initialize a skill (creates <name>/SKILL.md or ./SKILL.md)'
+        'experimental_sync:Sync skills from node_modules into agent directories'
+        'help:Show help'
+    )
+
+    _arguments -C \
+        '(-h --help)'{-h,--help}'[Show this help message]' \
+        '(-v --version)'{-v,--version}'[Show version number]' \
+        '1: :->command' \
+        '*:: :->args' \
+        && return 0
+
+    case $state in
+        command)
+            _describe -t commands 'skills command' skills_commands
+            ;;
+        args)
+            case $words[1] in
+                add|a)
+                    _arguments \
+                        '(-g --global)'{-g,--global}'[Install skill globally (user-level) instead of project-level]' \
+                        '(-a --agent)'{-a,--agent}"[Specify agents to install to ('*' for all agents)]:agent:" \
+                        '(-s --skill)'{-s,--skill}"[Specify skill names to install ('*' for all skills)]:skill:" \
+                        '(-l --list)'{-l,--list}'[List available skills in the repository without installing]' \
+                        '(-y --yes)'{-y,--yes}'[Skip confirmation prompts]' \
+                        '--copy[Copy files instead of symlinking to agent directories]' \
+                        '--metadata[Attach valid JSON to the install telemetry event]:json:' \
+                        '--subagent[Install to Eve subagents (use "root" for the root agent)]:names:' \
+                        "--all[Shorthand for --skill '*' --agent '*' -y]" \
+                        '--full-depth[Search all subdirectories even when a root SKILL.md exists]' \
+                        '1:package spec (e.g. owner/repo or a GitHub URL):'
+                    ;;
+
+                use)
+                    _arguments \
+                        '(-s --skill)'{-s,--skill}'[Specify the skill to use]:skill:' \
+                        '(-a --agent)'{-a,--agent}'[Start one supported agent interactively]:agent:' \
+                        '--full-depth[Search all subdirectories even when a root SKILL.md exists]' \
+                        '--dangerously-accept-openclaw-risks[Allow unverified OpenClaw community skills]' \
+                        '1:package@skill:'
+                    ;;
+
+                remove|rm)
+                    _arguments \
+                        '(-g --global)'{-g,--global}'[Remove from global scope]' \
+                        '(-a --agent)'{-a,--agent}"[Remove from specific agents ('*' for all agents)]:agent:" \
+                        '(-s --skill)'{-s,--skill}"[Specify skills to remove ('*' for all skills)]:skill:" \
+                        '(-y --yes)'{-y,--yes}'[Skip confirmation prompts]' \
+                        "--all[Shorthand for --skill '*' --agent '*' -y]" \
+                        '*:skill:'
+                    ;;
+
+                list|ls)
+                    _arguments \
+                        '(-g --global)'{-g,--global}'[List global skills (default: project)]' \
+                        '(-a --agent)'{-a,--agent}'[Filter by specific agents]:agent:' \
+                        '--json[Output as JSON (machine-readable, no ANSI codes)]'
+                    ;;
+
+                find)
+                    _arguments \
+                        '--owner[Search only repositories from a GitHub owner]:owner:' \
+                        '1:query:'
+                    ;;
+
+                update|upgrade)
+                    _arguments \
+                        '(-g --global)'{-g,--global}'[Update global skills only]' \
+                        '(-p --project)'{-p,--project}'[Update project skills only]' \
+                        '(-y --yes)'{-y,--yes}'[Skip scope prompt (auto-detect: project if in a project, else global)]' \
+                        '*:skill:'
+                    ;;
+
+                experimental_install)
+                    _message 'no options'
+                    ;;
+
+                init)
+                    _arguments '1:name:'
+                    ;;
+
+                experimental_sync)
+                    _arguments \
+                        '(-a --agent)'{-a,--agent}'[Specify agents to install to]:agent:' \
+                        '(-y --yes)'{-y,--yes}'[Skip confirmation prompts]'
+                    ;;
+
+                help)
+                    _describe -t commands 'skills command' skills_commands
+                    ;;
+
+                *)
+                    _default
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_npx "$@"

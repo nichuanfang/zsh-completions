@@ -1,0 +1,183 @@
+#compdef rtk
+# ------------------------------------------------------------------------------
+# Completion script for rtk (https://github.com/rtk-ai/rtk)
+# Written by hand against `rtk --help` output (rtk v0.43.0).
+# ------------------------------------------------------------------------------
+
+_rtk() {
+    local curcontext="$curcontext" state line
+    typeset -A opt_args
+
+    local -a commands
+    commands=(
+        'ls:List directory contents with token-optimized output (proxy to native ls)'
+        'tree:Directory tree with token-optimized output (proxy to native tree)'
+        'read:Read file with intelligent filtering'
+        'smart:Generate 2-line technical summary (heuristic-based)'
+        'git:Git commands with compact output'
+        'gh:GitHub CLI (gh) commands with token-optimized output'
+        'glab:GitLab CLI (glab) commands with token-optimized output'
+        'aws:AWS CLI with compact output (force JSON, compress)'
+        'psql:PostgreSQL client with compact output (strip borders, compress tables)'
+        'pnpm:pnpm commands with ultra-compact output'
+        'err:Run command and show only errors/warnings'
+        'test:Run tests and show only failures'
+        'json:Show JSON (compact values by default, or keys-only with --keys-only)'
+        'deps:Summarize project dependencies'
+        'env:Show environment variables (filtered)'
+        'find:Find files with compact tree output (accepts native find flags)'
+        'diff:Ultra-condensed diff (only changed lines)'
+        'log:Filter and deduplicate log output'
+        'dotnet:.NET commands with compact output (build/test/restore/format)'
+        'docker:Docker commands with compact output'
+        'kubectl:Kubectl commands with compact output'
+        'oc:OpenShift CLI (oc) commands with compact output'
+        'summary:Run command and show heuristic summary'
+        'grep:Compact grep - strips whitespace, truncates, groups by file'
+        'rg:Compact ripgrep - runs rg natively, same output filter as grep'
+        'init:Initialize rtk instructions for assistant CLI usage'
+        'wget:Download with compact output (strips progress bars)'
+        'wc:Word/line/byte count with compact output (strips paths and padding)'
+        'gain:Show token savings summary and history'
+        'cc-economics:Claude Code economics: spending (ccusage) vs savings (rtk)'
+        'config:Show or create configuration file'
+        'jest:Jest commands with compact output'
+        'vitest:Vitest commands with compact output'
+        'prisma:Prisma commands with compact output (no ASCII art)'
+        'tsc:TypeScript compiler with grouped error output'
+        'next:Next.js build with compact output'
+        'lint:ESLint with grouped rule violations'
+        'prettier:Prettier format checker with compact output'
+        'format:Universal format checker (prettier, black, ruff format)'
+        'playwright:Playwright E2E tests with compact output'
+        'cargo:Cargo commands with compact output'
+        'npm:npm run with filtered output (strip boilerplate)'
+        'npx:npx with intelligent routing (tsc, eslint, prisma -> specialized filters)'
+        'curl:Curl with auto-JSON detection and schema output'
+        'discover:Discover missed RTK savings from Claude Code history'
+        'session:Show RTK adoption across Claude Code sessions'
+        'telemetry:Manage telemetry consent and data (RGPD/GDPR)'
+        'learn:Learn CLI corrections from Claude Code error history'
+        'run:Execute a shell command via sh -c (raw, no filtering or tracking)'
+        'proxy:Execute command without filtering but track usage'
+        'pipe:Read stdin, apply filter, print filtered output (Unix pipe mode)'
+        'trust:Trust project-local TOML filters in current directory'
+        'untrust:Revoke trust for project-local TOML filters'
+        'verify:Verify hook integrity and run TOML filter inline tests'
+        'ruff:Ruff linter/formatter with compact output'
+        'pytest:Pytest test runner with compact output'
+        'mypy:Mypy type checker with grouped error output'
+        'rake:Rake/Rails test with compact Minitest output (Ruby)'
+        'rubocop:RuboCop linter with compact output (Ruby)'
+        'rspec:RSpec test runner with compact output (Rails/Ruby)'
+        'pip:Pip package manager with compact output (auto-detects uv)'
+        'go:Go commands with compact output'
+        'gt:Graphite (gt) stacked PR commands with compact output'
+        'golangci-lint:golangci-lint wrapper with compact run support'
+        'gradlew:Android Gradle wrapper with compact output (build, test, lint)'
+        'mvn:Apache Maven wrapper with compact output'
+        'hook-audit:Show hook rewrite audit metrics (requires RTK_HOOK_AUDIT=1)'
+        'rewrite:Rewrite a raw command to its RTK equivalent'
+        'hook:Hook processors for LLM CLI tools (Gemini CLI, Copilot, etc.)'
+        'help:Print this message or the help of the given subcommand(s)'
+    )
+
+    _arguments -C \
+        '(-v --verbose)'{-v,--verbose}'[Verbosity level (-v, -vv, -vvv); only before subcommand]' \
+        '--ultra-compact[Ultra-compact mode: ASCII icons, inline format]' \
+        '--skip-env[Set SKIP_ENV_VALIDATION=1 for child processes]' \
+        '(-h --help)'{-h,--help}'[Print help]' \
+        '(-V --version)'{-V,--version}'[Print version]' \
+        '1: :->command' \
+        '*:: :->args' \
+        && return 0
+
+    case $state in
+        command)
+            _describe -t commands 'rtk command' commands
+            ;;
+        args)
+            # Most rtk subcommands are thin proxies over a native tool, so
+            # delegate to that tool's own completion function when present.
+            case $words[1] in
+                git)      (( $+functions[_git] ))      && _git      || _default ;;
+                gh)       (( $+functions[_gh] ))        && _gh       || _default ;;
+                glab)     (( $+functions[_glab] ))      && _glab     || _default ;;
+                aws)      (( $+functions[_aws] ))       && _aws      || _default ;;
+                psql)     (( $+functions[_psql] ))      && _psql     || _default ;;
+                pnpm)     (( $+functions[_pnpm] ))      && _pnpm     || _default ;;
+                dotnet)   (( $+functions[_dotnet] ))    && _dotnet   || _default ;;
+                docker)   (( $+functions[_docker] ))    && _docker   || _default ;;
+                kubectl)  (( $+functions[_kubectl] ))   && _kubectl  || _default ;;
+                oc)       (( $+functions[_oc] ))        && _oc       || _default ;;
+                cargo)    (( $+functions[_cargo] ))     && _cargo    || _default ;;
+                npm)      (( $+functions[_npm] ))       && _npm      || _default ;;
+                npx)      (( $+functions[_npx] ))       && _npx      || _default ;;
+                pip)      (( $+functions[_pip] ))       && _pip      || _default ;;
+                go)       (( $+functions[_go] ))        && _go       || _default ;;
+                find)     (( $+functions[_find] ))      && _find     || _default ;;
+                rg)       (( $+functions[_rg] ))        && _rg       || _default ;;
+                grep)     (( $+functions[_grep] ))      && _grep     || _default ;;
+                curl)     (( $+functions[_curl] ))      && _curl     || _default ;;
+                wget)     (( $+functions[_wget] ))      && _wget     || _default ;;
+                mvn)      (( $+functions[_mvn] ))       && _mvn      || _default ;;
+
+                telemetry)
+                    local -a telemetry_cmds
+                    telemetry_cmds=(
+                        'status:Check current consent state'
+                        'enable:Give consent (interactive prompt)'
+                        'disable:Withdraw consent - stops all collection immediately'
+                        'forget:Withdraw consent + delete all local data + request server-side erasure'
+                    )
+                    _describe -t telemetry-commands 'telemetry subcommand' telemetry_cmds
+                    ;;
+
+                gain)
+                    _arguments \
+                        '--graph[ASCII graph (last 30 days)]' \
+                        '--history[Recent command history]' \
+                        '--daily[Day-by-day breakdown]' \
+                        '--all[Include all projects]' \
+                        '--since[Only include the last N days]:days:' \
+                        '--format[Output format]:format:(text json)'
+                    ;;
+
+                discover)
+                    _arguments \
+                        '--all[All projects]' \
+                        '--since[Only include the last N days]:days:'
+                    ;;
+
+                init)
+                    _arguments \
+                        '(-g --global)'{-g,--global}'[Install hook globally]' \
+                        '--gemini[Gemini CLI integration]' \
+                        '--codex[Codex (OpenAI) integration]' \
+                        '--opencode[OpenCode plugin integration]' \
+                        '--agent[Specify target AI agent]:agent:(cursor windsurf cline kilocode antigravity kimi hermes droid pi)' \
+                        '--auto-patch[Non-interactive setup (CI/CD)]' \
+                        '--hook-only[Install hook only, no RTK.md]' \
+                        '--show[Verify current installation]' \
+                        '--uninstall[Remove hook, RTK.md, settings.json entry]'
+                    ;;
+
+                config)
+                    _arguments \
+                        '--init[Create a default configuration file]' \
+                        '--show[Show current configuration]'
+                    ;;
+
+                help)
+                    _describe -t commands 'rtk command' commands
+                    ;;
+
+                *)
+                    _default
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_rtk "$@"
