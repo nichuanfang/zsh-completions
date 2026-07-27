@@ -1,0 +1,95 @@
+#compdef bat
+# ------------------------------------------------------------------------------
+# Description
+# -----------
+#
+#  Completion script for bat 0.26.1 (https://github.com/sharkdp/bat).
+#
+# ------------------------------------------------------------------------------
+# Authors
+# -------
+#
+#  * Nichuan Fang (https://github.com/nichuanfang)
+#
+# ------------------------------------------------------------------------------
+
+_bat() {
+  typeset -A opt_args
+  local context state line
+  local curcontext="$curcontext"
+
+  local -a commands
+  commands=(
+    'cache:Manage the syntax and theme cache'
+  )
+
+  _arguments -C \
+    '(- 1 *)'{-h,--help}'[print help]' \
+    '(- 1 *)'{-V,--version}'[print version]' \
+    '(-A --show-all)'{-A,--show-all}'[show non-printable characters]' \
+    '--nonprintable-notation=[set notation for non-printable characters]:notation:(unicode caret)' \
+    '--binary=[how to treat binary content]:behavior:(no-printing as-text)' \
+    '(-p --plain)'{-p,--plain}'[only show plain style, no decorations]' \
+    '(-l --language)'{-l,--language=}'[set language for syntax highlighting]:language' \
+    '(-H --highlight-line)'{-H,--highlight-line=}'[highlight specified line ranges]:N:M' \
+    '--file-name=[name to display for a file]:name' \
+    '(-d --diff)'{-d,--diff}'[only show lines modified with respect to Git index]' \
+    '--diff-context=[lines of context around diff changes]:num' \
+    '--tabs=[set tab width to T spaces]:T' \
+    '--wrap=[specify text-wrapping mode]:mode:(auto never character)' \
+    '(-S --chop-long-lines)'{-S,--chop-long-lines}'[truncate lines longer than screen width]' \
+    '--terminal-width=[explicitly set terminal width]:width' \
+    '(-n --number)'{-n,--number}'[only show line numbers]' \
+    '--color=[specify when to use colored output]:when:(auto never always)' \
+    '--italic-text=[specify when to use italic text]:when:(always never)' \
+    '--decorations=[specify when to use decorations]:when:(auto never always)' \
+    '(-f --force-colorization)'{-f,--force-colorization}'[alias for --decorations=always --color=always]' \
+    '--paging=[specify when to use the pager]:when:(auto never always)' \
+    '--pager=[determine which pager to use]:command' \
+    '(-m --map-syntax)'{-m,--map-syntax=}'[map a glob pattern to a syntax]:glob:syntax' \
+    '--ignored-suffix=[ignore file extension suffix]:suffix' \
+    '--theme=[set theme for syntax highlighting]:theme' \
+    '--theme-light=[set theme for light background]:theme' \
+    '--theme-dark=[set theme for dark background]:theme' \
+    '--list-themes[display a list of supported themes]' \
+    '(-s --squeeze-blank)'{-s,--squeeze-blank}'[squeeze consecutive empty lines]' \
+    '--squeeze-limit=[max consecutive empty lines to print]:num' \
+    '--strip-ansi=[specify when to strip ANSI sequences]:when:(auto always never)' \
+    '--style=[configure which elements to display]:components' \
+    '(-r --line-range)'{-r,--line-range=}'[only print specified range of lines]:N:M' \
+    '(-L --list-languages)'{-L,--list-languages}'[display supported languages]' \
+    '(-u --unbuffered)'{-u,--unbuffered}'[ignored for POSIX-compliance]' \
+    '--completion=[show shell completion]:shell:(bash fish zsh ps1)' \
+    '--diagnostic[show diagnostic information]' \
+    '--acknowledgements[show acknowledgements]' \
+    '--set-terminal-title[set terminal title when using a pager]' \
+    '*:: :->args' \
+    && return 0
+
+  case $state in
+    (args)
+      case $words[1] in
+        (cache)
+          _arguments \
+            '--build[build the syntax/theme cache]' \
+            '--clear[clear the syntax/theme cache]' \
+            '(- 1 *)'{-h,--help}'[print help]' \
+            '*::files:_files'
+          ;;
+        (*)
+          _arguments '*::files:_files'
+          ;;
+      esac
+      ;;
+  esac
+}
+
+_bat "$@"
+
+# Local Variables:
+# mode: Shell-Script
+# sh-indentation: 2
+# indent-tabs-mode: nil
+# sh-basic-offset: 2
+# End:
+# vim: ft=zsh sw=2 ts=2 et

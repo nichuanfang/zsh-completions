@@ -1,0 +1,144 @@
+#compdef fzf
+# ------------------------------------------------------------------------------
+# Description
+# -----------
+#
+#  Completion script for fzf 0.74.0 (https://github.com/junegunn/fzf).
+#
+# ------------------------------------------------------------------------------
+# Authors
+# -------
+#
+#  * Nichuan Fang (https://github.com/nichuanfang)
+#
+# ------------------------------------------------------------------------------
+
+_fzf() {
+  local curcontext="$curcontext" state line
+  typeset -A opt_args
+
+  _arguments \
+    '(- 1 *)'{-h,--help}'[show help message]' \
+    '(- 1 *)'--man'[show man page]' \
+    '(- 1 *)'{-v,--version}'[display version information]' \
+    '--bash[print script to set up Bash shell integration]' \
+    '--zsh[print script to set up Zsh shell integration]' \
+    '--fish[print script to set up Fish shell integration]' \
+    '--nushell[print script to set up Nushell integration]' \
+    '(-e --exact +x --no-extended)'{-e,--exact}'[enable exact-match]' \
+    '(-e --exact +x --no-extended)'{+x,--no-extended}'[disable extended-search mode]' \
+    '(-i --ignore-case +i --no-ignore-case)'{-i,--ignore-case}'[case-insensitive match]' \
+    '(-i --ignore-case +i --no-ignore-case)'{+i,--no-ignore-case}'[case-sensitive match]' \
+    '--smart-case[smart-case match (default)]' \
+    '--scheme=[scoring scheme]:scheme:(default path history)' \
+    '(-n --nth)'{-n,--nth=}'[field index expressions for search scope]:nth' \
+    '--with-nth=[transform presentation using field index expressions]:nth' \
+    '--accept-nth=[define fields to print on accept]:nth' \
+    '(-d --delimiter)'{-d,--delimiter=}'[field delimiter regex]:regex' \
+    '(+s --no-sort)'{+s,--no-sort}'[do not sort the result]' \
+    '--literal[do not normalize latin script letters]' \
+    '--tail=[max items to keep in memory]:num' \
+    '--disabled[do not perform search]' \
+    '--tiebreak=[sort criteria]:criteria:(length chunk pathname begin end index)' \
+    '--read0[read input delimited by ASCII NUL characters]' \
+    '--print0[print output delimited by ASCII NUL characters]' \
+    '--ansi[enable processing of ANSI color codes]' \
+    '--sync[synchronous search for multi-staged filtering]' \
+    '--style=[apply a style preset]:preset' \
+    '--color=[base scheme and/or custom colors]:color' \
+    '--no-color[disable colors]' \
+    '--no-bold[do not use bold text]' \
+    '--height=[display fzf window with given height]:height' \
+    '--min-height=[minimum height when using --height]:height' \
+    '--popup=[start fzf in a floating pane]:opts' \
+    '--tmux=[alias for --popup]:opts' \
+    '--layout=[choose layout]:layout:(default reverse reverse-list)' \
+    '--margin=[screen margin]:margin' \
+    '--padding=[padding inside border]:padding' \
+    '--border=[draw border around the finder]:style' \
+    '--border-label=[label to print on the border]:label' \
+    '--border-label-pos=[position of the border label]:pos' \
+    '(-m --multi)'{-m,--multi=}'[enable multi-select with tab/shift-tab]::max' \
+    '--highlight-line[highlight the whole current line]' \
+    '--cycle[enable cyclic scroll]' \
+    '--wrap=[enable line wrap]:mode:(char word)' \
+    '--wrap-sign=[indicator for wrapped lines]:str' \
+    '--no-multi-line[disable multi-line display of items]' \
+    '--raw[enable raw mode]' \
+    '--track[track current selection when result is updated]' \
+    '--id-nth=[define item identity fields for cross-reload]:nth' \
+    '--tac[reverse the order of the input]' \
+    '--gap=[render empty lines between each item]::num' \
+    '--gap-line=[draw horizontal line on each gap]:str' \
+    '--freeze-left=[number of fields to freeze on left]:num' \
+    '--freeze-right=[number of fields to freeze on right]:num' \
+    '--keep-right[keep the right end of line visible on overflow]' \
+    '--scroll-off=[screen lines to keep above/below when scrolling]:num' \
+    '--no-hscroll[disable horizontal scroll]' \
+    '--hscroll-off=[screen columns to keep right of highlighted substring]:num' \
+    '--jump-labels=[label characters for jump mode]:chars' \
+    '--gutter=[character for the gutter column]:char' \
+    '--gutter-raw=[character for gutter column in raw mode]:char' \
+    '--pointer=[pointer to the current line]:str' \
+    '--marker=[multi-select marker]:str' \
+    '--marker-multi-line=[multi-line entry marker]:str' \
+    '--ellipsis=[ellipsis for truncated lines]:str' \
+    '--tabstop=[number of spaces for tab character]:num' \
+    '--scrollbar=[scrollbar characters]:chars' \
+    '--no-scrollbar[hide scrollbar]' \
+    '--list-border=[draw border around the list section]:style' \
+    '--list-label=[label to print on the list border]:label' \
+    '--list-label-pos=[position of the list label]:pos' \
+    '--no-input[disable and hide the input section]' \
+    '--prompt=[input prompt]:str' \
+    '--info=[finder info style]:style' \
+    '--info-command=[command to generate info line]:command' \
+    '--separator=[draw horizontal separator on info line]:str' \
+    '--no-separator[hide info line separator]' \
+    '--ghost=[ghost text when input is empty]:text' \
+    '--filepath-word[make word-wise movements respect path separators]' \
+    '--input-border=[draw border around the input section]:style' \
+    '--input-label=[label on the input border]:label' \
+    '--input-label-pos=[position of the input label]:pos' \
+    '--preview=[command to preview highlighted line]:command' \
+    '--preview-window=[preview window layout]:opts' \
+    '--preview-border=[short for --preview-window=border-STYLE]:style' \
+    '--preview-label=[label for preview window]:label' \
+    '--preview-label-pos=[position of the preview label]:pos' \
+    '--preview-wrap-sign=[indicator for wrapped lines in preview]:str' \
+    '--header=[string to print as header]:str' \
+    '--header-lines=[first N lines of input treated as header]:num' \
+    '--header-first[print header before the prompt line]' \
+    '--header-border=[draw border around header section]:style' \
+    '--header-lines-border=[display header lines with a border]:style' \
+    '--header-label=[label on header border]:label' \
+    '--header-label-pos=[position of header label]:pos' \
+    '--footer=[string to print as footer]:str' \
+    '--footer-border=[draw border around footer section]:style' \
+    '--footer-label=[label on footer border]:label' \
+    '--footer-label-pos=[position of footer label]:pos' \
+    '(-q --query)'{-q,--query=}'[start the finder with given query]:query' \
+    '(-1 --select-1)'{-1,--select-1}'[automatically select the only match]' \
+    '(-0 --exit-0)'{-0,--exit-0}'[exit immediately when no match]' \
+    '(-f --filter)'{-f,--filter=}'[print matches for initial query and exit]:query' \
+    '--print-query[print query as the first line]' \
+    '--expect=[comma-separated keys to complete fzf]:keys' \
+    '--bind=[custom key/event bindings]:bindings' \
+    '--with-shell=[shell command for child processes]:shell' \
+    '--listen::[start HTTP server to receive actions via TCP]:addrport' \
+    '--walker=[walker options]:opts:(file dir follow hidden)' \
+    '--walker-root=[list of directories to walk]:dir:_files -/' \
+    '--walker-skip=[comma-separated directory names to skip]:dirs' \
+    '--history=[file to store fzf search history]:file:_files' \
+    '--history-size=[maximum entries in history file]:num'
+}
+
+_fzf "$@"
+
+# Local Variables:
+# mode: Shell-Script
+# sh-indentation: 2
+# indent-tabs-mode: nil
+# sh-basic-offset: 2
+# End:
+# vim: ft=zsh sw=2 ts=2 et

@@ -1,0 +1,47 @@
+{
+  "skill_name": "completion-generator",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "jq 这个命令按 tab 没反应,帮我写个补全文件吧。就是 json 处理的那个 jq,在 brew 安装的",
+      "expected_output": "A zsh completion file at src/_jq with #compdef jq, options parsed from jq --help, using _arguments",
+      "files": [],
+      "expectations": [
+        "The file src/_jq is created",
+        "The file starts with #compdef jq",
+        "The file uses _arguments to define options",
+        "Options like --color-output, --monochrome-output, --raw-output, --from-file, --arg, --argjson, --slurp, --compact-output are defined",
+        "The file defines a _jq function that calls _jq \"$@\" at the end",
+        "The file follows the repo's BSD-style license header format"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "bat 没有自动补全,帮我写个补全。是那个带语法高亮的 cat 替代品 bat,不是微软的构建工具",
+      "expected_output": "A zsh completion file at src/_bat with #compdef bat, options parsed from bat --help, using _arguments",
+      "files": [],
+      "expectations": [
+        "The file src/_bat is created",
+        "The file starts with #compdef bat",
+        "The file uses _arguments to define options",
+        "Options like --style, --theme, --language, --list-themes, --list-languages, --color, --decorations are defined",
+        "The --theme option provides completions for common theme values",
+        "The --language option provides completions for known languages",
+        "The file defines a _bat function that calls _bat \"$@\" at the end"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "fzf 这个命令没有 tab 补全,用起来不太方便。帮我写个 _fzf 补全文件吧",
+      "expected_output": "A zsh completion file at src/_fzf with #compdef fzf, options parsed from fzf --help, using _arguments",
+      "files": [],
+      "expectations": [
+        "The file src/_fzf is created",
+        "The file starts with #compdef fzf",
+        "The file uses _arguments to define options",
+        "Options like --height, --layout, --reverse, --bind, --preview, --preview-window, --multi, --query, --select-1, --exit-0 are defined",
+        "The file defines a _fzf function that calls _fzf \"$@\" at the end"
+      ]
+    }
+  ]
+}
