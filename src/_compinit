@@ -1,0 +1,33 @@
+#compdef compinit
+# ------------------------------------------------------------------------------
+# Description
+# -----------
+#
+# Completion script for compinit(1), the zsh completion system initializer.
+#
+# ------------------------------------------------------------------------------
+
+_compinit() {
+  local curcontext="$curcontext" ret=1
+
+  _arguments -S -s \
+    '(-D)-d[specify dump file]:dump file:_files' \
+    '(-d)-D[disable automatic dumping]' \
+    '(-u)-i[silently ignore insecure files and directories]' \
+    '(-i)-u[use all files and directories without security check]' \
+    '-C[skip security check and dump rebuild check]' \
+    '-w[print why the dump file is being regenerated]' \
+    && ret=0
+
+  return ret
+}
+
+_compinit "$@"
+
+# Local Variables:
+# mode: Shell-Script
+# sh-indentation: 2
+# indent-tabs-mode: nil
+# sh-basic-offset: 2
+# End:
+# vim: ft=zsh sw=2 ts=2 et
