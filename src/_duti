@@ -1,40 +1,78 @@
 #compdef duti
+# ------------------------------------------------------------------------------
+# Description
+# -----------
+#
+# Completion script for duti — set default document and URL handlers on macOS.
+#
+# ------------------------------------------------------------------------------
+# Authors
+# -------
+#
+# * Nichuan Fang
+#
+# ------------------------------------------------------------------------------
 
 _duti() {
-  local context state state_descr line
+  local curcontext="$curcontext" ret=1
+  local -a state line
   typeset -A opt_args
 
-  # 规范化了选项定义，去掉了多余的反斜杠，并将 `1:` 改为 `*:` 以支持多个文件
-  _arguments -s -S \
-    '(-h)-h[打印帮助信息并退出]' \
-    '(-V)-V[打印版本号并退出]' \
-    '(-v)-v[开启详细输出模式]' \
-    '(-d)-d[显示指定 UTI 的当前默认 Handler]:UTI:' \
-    '(-l)-l[显示指定 UTI 的所有 Handler]:UTI:' \
-    '(-x)-x[显示指定文件扩展名的默认 Handler]:扩展名:' \
-    '(-s)-s[设置默认 Handler]:bundle_id:->bundle:UTI 或扩展名:->uti:角色:->roles' \
-    '*:配置文件或目录:_files'
+  local -a roles
+  roles=(
+    'all:application handles all roles for the given UTI'
+    'viewer:application handles reading and displaying documents'
+    'editor:application can manipulate and save the item'
+    'shell:application can execute the item'
+    'none:application cannot open the item, but provides an icon'
+  )
 
-  # 利用 Zsh 的状态机，依次处理 -s 后面的三个参数
+  _arguments -C -s -S \
+    '(- *)'{-h,--help}'[show help message and exit]' \
+    '(- *)'{-V,--version}'[print version and exit]' \
+    '(- *)'{-v,--verbose}'[enable verbose output]' \
+    '(-x -s)-d[show default handler for given UTI]:UTI: ' \
+    '(-x -s)-l[list all handlers for given UTI]:UTI: ' \
+    '(-d -l -s)-x[get default application info for extension]:extension: ' \
+    '(-d -l -x)-s[set default handler]: :->bundle-id' \
+    '*:: :->args' && ret=0
+
   case $state in
-    bundle)
-      # 这里可以替换为你获取系统 bundle_id 列表的函数，目前仅做提示
-      _message "输入 bundle_id (例如: com.apple.Safari)"
+    (bundle-id)
+      _message -e bundle-ids 'bundle ID (e.g. com.apple.Safari)'
+      ret=0
       ;;
-    uti)
-      _message "输入 UTI 或扩展名 (例如: public.html 或 .txt)"
-      ;;
-    roles)
-      local -a roles=(
-        'all:处理该 UTI/扩展名的所有角色'
-        'viewer:仅读取和显示文档'
-        'editor:编辑并保存文档'
-        'shell:可执行该文档'
-        'none:无法打开，仅提供图标'
-      )
-      _describe -t roles '角色 (role)' roles
+    (args)
+      if [[ -n ${opt_args[-s]:-} ]]; then
+        local -i s_pos=${words[(ie)-s]}
+        local -a tail=(${words[$((s_pos+1)),-1]})
+        case ${#tail} in
+          (0|1)
+            _message -e handler-targets \
+              'UTI, URL scheme, extension (.txt), or MIME type (text/plain)' && ret=0
+            ;;
+          (2)
+            _describe -t roles role roles && ret=0
+            ;;
+          (*)
+            _files && ret=0
+            ;;
+        esac
+      else
+        _files && ret=0
+      fi
       ;;
   esac
+
+  return ret
 }
 
 _duti "$@"
+
+# Local Variables:
+# mode: Shell-Script
+# sh-indentation: 2
+# indent-tabs-mode: nil
+# sh-basic-offset: 2
+# End:
+# vim: ft=zsh sw=2 ts=2 et
