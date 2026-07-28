@@ -4,56 +4,81 @@ description: >
   补全脚本生成器：当用户提到某个命令没有 zsh tab 补全、想编写补全脚本、或询问如何补全某个命令时，使用此技能。
   触发场景包括：用户在命令后按 tab 没反应、用户说"给 X 写个补全"、"写个 _X 文件"、"为 X 生成 zsh 补全"、
   "X 没有自动补全"、"给 X 添加 tab 补全"，以及任何涉及为命令行工具编写或生成 _arguments _describe 补全的请求。
-  对于非名命令（全新、老旧、小众工具），优先使用此技能而非手动编写。
+  对于非知名命令（全新、老旧、小众工具），优先使用此技能而非手动编写。
 ---
 
 # 补全脚本生成器（Completion Script Generator）
 
-为 `zsh-users/zsh-completions` 仓库的命令行工具生成 zsh 补全脚本。
+为 zsh 生成高质量、可直接使用的补全脚本（优先兼容 zsh-users/zsh-completions 风格）。
 
 ## 工作流程
 
 ### 1. 理解命令结构
 
-当用户指定一个命令名（如 `mycli`）时：
+当用户指定一个命令名（如 `mycli` 或 `bat`）时：
 
-1. **运行 `command --help`**（必要时尝试 `command --help-long`、`command -h`）
-   - 用 `Bash` 工具运行 `commandname --help` 或 `commandname -h` 获取帮助文本
-   
-2. **如果命令不在 PATH 中**（或无法直接运行）：
-   - 使用 web 搜索查找该命令的文档（参数、子命令、选项）
-   - 或使用 context7 查找相关文档
-   
-3. **如果是已知找不到的命令但有文档**（如 Docker 插件、Homebrew 安装且补全缺失等）：
-   - 使用 context7 或 web 搜索查找该命令的官方 `--help` 格式输出
+1. **优先运行帮助命令**
+   使用 bash 工具执行 `command --help`、`command -h` 或 `command help`，获取完整帮助文本。
+
+2. **如果命令不在 PATH 中或无法运行**
+   - 使用 web_search / open_page 查找官方文档、GitHub README 或 man page。
+   - 重点提取：Usage 行、Options、Commands/Subcommands、Arguments。
+
+3. **判断命令类型**（决定采用哪种模板）
+   - **A 类（强子命令型）**：有明确的一级子命令列表（如 `git`、`docker`、`kubectl`）。
+   - **B 类（选项 + 文件型）**：以大量选项为主，位置参数多为文件/路径，仅有零星可选子命令（如 `bat`、`rg`、`fd`）。
+   - **C 类（极简）**：几乎无子命令，仅选项 + 文件。
 
 ### 2. 分析帮助输出
 
-从 `--help` 输出中提取：
+从帮助文本中提取：
 
-- **子命令列表**：`Available commands:` 或类似标题下的内容
-- **全局选项**：所有标记为 `[options]` 的项
-- **每个子命令特有的选项**
-- **参数类型**：文件路径、URL、枚举值（如 `on|off`）、自由文本等
+- 子命令列表及其简短描述
+- 全局选项（短/长格式、是否互斥、是否带参数）
+- 每个子命令特有的选项
+- 位置参数类型（文件、目录、枚举值、自由文本等）
+- 特殊行为（`--` 结束选项、可重复选项、环境变量影响等）
 
-### 3. 参考现有补全文件
+### 3. 生成补全文件
 
-读取用户仓库中的这些文件以了解风格：
+#### 推荐控制流模板（必须遵守）
 
-- `src/_claude` — 中等复杂度的子命令+选项模式（推荐作为主要参考）
-- `src/_age` — 多命令场景（`#compdef` 中有多个命令名）
-- `src/_dad` — 简单命令示例
+**绝对禁止** 在 `_arguments` 后直接写 `&& return 0` 然后紧跟 `case $state`。
+正确写法如下：
 
-理解这些模式：
-- 使用 `_arguments -C`（`-C` 用于子命令分发模式）
-- 使用 `'(- *)'{-h,--help}'[description]'` 作为帮助选项约定
-- `->state` 用于 `case $state` 分发
-- `_describe -t commands 'tag' commands_array` 用于子命令列表
-- `1: :->cmds` 表示第一个位置是子命令，`*:: :->args` 表示后续参数
+```zsh
+_<commandname>() {
+  local curcontext="$curcontext" ret=1
+  local -a state line
+  typeset -A opt_args
 
-### 4. 生成补全文件
+  _arguments -C \
+    # ... 选项与位置参数规格 ...
+    '1: :->cmds' \
+    '*:: :->args' && ret=0
 
-按照以下结构和约定生成文件，写入 `src/_<commandname>`：
+  case $state in
+    (cmds)
+      # 补全子命令
+      ;;
+    (args)
+      # 根据 $words[1] 补全子命令参数
+      ;;
+  esac
+
+  return ret
+}
+```
+
+对于 **B 类 / C 类**（选项 + 文件为主）的命令，优先采用更简洁的写法，避免不必要的 state 分发：
+
+```zsh
+_arguments -S -s \
+  # 所有选项 ...
+  '*:file:{ _files || compadd <optional-subcommand> }' && ret=0
+```
+
+#### 完整推荐模板（强子命令型）
 
 ```zsh
 #compdef <commandname>
@@ -61,53 +86,55 @@ description: >
 # Description
 # -----------
 #
-#  Completion script for <commandname> <version> (<url>).
+# Completion script for <commandname> (https://...).
 #
 # ------------------------------------------------------------------------------
 # Authors
 # -------
 #
-#  * <Your Name> (<https://github.com/yourname>)
+# * <Your Name> (https://github.com/yourname)
 #
 # ------------------------------------------------------------------------------
 
 _<commandname>() {
+  local curcontext="$curcontext" ret=1
+  local -a state line
   typeset -A opt_args
-  local context state line
-  local curcontext="$curcontext"
 
   local -a commands
   commands=(
-    'subcommand:Description of this subcommand'
-    'othercmd:Another subcommand description'
+    'subcommand:Do something useful'
+    'othercmd:Do something else'
   )
 
   _arguments -C \
-    '(- 1 *)'{-h,--help}'[show help message and exit]' \
+    '(- *)'{-h,--help}'[show help message and exit]' \
     '(-v --version)'{-v,--version}'[display version information]' \
     '--verbose[enable verbose output]' \
     '--output=[specify output file]:output file:_files' \
     '1: :->cmds' \
-    '*:: :->args' && return 0
+    '*:: :->args' && ret=0
 
   case $state in
     (cmds)
-      _describe -t commands '<commandname> command' commands
+      _describe -t commands '<commandname> commands' commands && ret=0
       ;;
     (args)
       case $words[1] in
         (subcommand)
           _arguments \
             '(-f --flag)'{-f,--flag}'[description of flag]' \
-            '*::arguments:_files'
+            '*::files:_files' && ret=0
           ;;
         (othercmd)
           _arguments \
-            '--option=[description]:option:(choice1 choice2 choice3)'
+            '--option=[description]:option:(choice1 choice2 choice3)' && ret=0
           ;;
       esac
       ;;
   esac
+
+  return ret
 }
 
 _<commandname> "$@"
@@ -121,113 +148,64 @@ _<commandname> "$@"
 # vim: ft=zsh sw=2 ts=2 et
 ```
 
-## 补全文件编写规则
-
-### 文件命名与声明
-
-- 文件名：`_<commandname>`，放在 `src/` 目录
-- 首行：`#compdef <commandname>`（用空格分隔多个命令名）
-
-### 函数结构与变量声明
+#### 选项 + 文件型（推荐用于 bat 类工具）的精简写法
 
 ```zsh
-_<commandname>() {
+#compdef bat
+# ... header ...
+
+_bat() {
+  local curcontext="$curcontext" ret=1
+  local -a state line
   typeset -A opt_args
-  local context state line
-  local curcontext="$curcontext"
-  # ... rest of function
+
+  # 先处理可选子命令
+  case $words[2] in
+    (cache)
+      shift words; (( CURRENT-- ))
+      # 调用专门的 cache 补全函数
+      _bat_cache && return
+      ;;
+  esac
+
+  _arguments -S -s \
+    # 所有选项规格 ...
+    '*: :{ _files || compadd cache }' && ret=0
+
+  # 如有需要动态补全的选项，再处理 state
+  case $state in
+    (languages) ... ;;
+    (themes)    ... ;;
+  esac
+
+  return ret
 }
-_<commandname> "$@"
 ```
 
-### 选项格式约定
+### 补全文件编写规则（精简版）
 
-```zsh
-# 无参数选项
-'--option[description of option]'
+- 文件名：`_<commandname>`，放在 `src/` 目录。
+- 首行：`#compdef <commandname>`。
+- 必须使用 `local ret=1` + 末尾 `return ret`，禁止裸 `&& return 0` 提前退出。
+- 选项互斥写在括号内：`'(-a --all -n --none)'{-a,--all}'[...]'`。
+- 可重复选项加 `*` 前缀：`\*{-H,--highlight-line=}'[...]'`。
+- 文件参数优先使用 `_files`；目录使用 `_files -/`。
+- 动态列表（语言、主题等）用 `->state` + `_describe` 或 `_wanted`。
+- 描述文本：子命令首字母大写，选项描述首字母小写，尽量 ≤ 60 字符。
 
-# 有短格式（同时指定短格式和长格式）：
-'--long[description]'
-'(-s --short)'{-s,--short}'[description]'
+### 输出要求
 
-# 唯一的一对（如 (--foo) 表示与自身互斥）：
-'(-o --output)'{-o,--output}'[specify output]:message:_files'
+- 将生成的文件写入 `src/_<commandname>`。
+- 完成后给出文件路径 + 简短摘要。
+- 提示用户重新加载方式：
+  ```zsh
+  unfunction _<commandname> && autoload -U _<commandname>
+  # 或
+  rm -f ~/.zcompdump && compinit
+  ```
 
-# 有互斥选项（互斥的选项名放前面括号里）：
-'(-e --encrypt -d --decrypt)'{-e,--encrypt}'[encrypt the input]'
+### 额外注意事项
 
-# 带参数选项：
-'--output=[description]:output file:_files'
-'--mode=[description]:mode:(default advanced expert)'
-
-# 重复选项（\\* 前缀）：
-\*'--include=[pattern to include]:pattern:'
-```
-
-### 命令分发模式
-
-使用 `_arguments -C`（大写 C）配合 `case $state`：
-
-```zsh
-_arguments -C \
-  '1: :->cmds' \
-  '*:: :->args'
-
-case $state in
-  (cmds)
-    _describe -t commands '<name> commands' commands_array
-    ;;
-  (args)
-    case $words[1] in
-      (subcmd1)
-        _arguments '--flag[desc]'
-        ;;
-      (subcmd2)
-        _arguments '--option=[desc]:val:(a b c)'
-        ;;
-    esac
-    ;;
-esac
-```
-
-不从 `case` 退出时返回非零，规范模式是在每个 `_arguments` 调用后使用 `&& return 0` 或 `&& ret=0`（配合 `local ret=1` 和末尾 `return ret`）。
-
-### 参数完成动作类型
-
-| 动作 | 用法 | 示例 |
-|------|------|------|
-| `(val1 val2)` | 固定选项列表 | `'1:mode:(debug release)'` |
-| `((val\:"desc1" val\:"desc2"))` | 带描述的固定选项 | `'1:mode:((debug\:"Debug mode" release\:"Release mode"))'` |
-| `->state` | 转到 case $state | `'1: :->cmds'` |
-| `_files` | 文件路径 | `'--file=[input]:input file:_files'` |
-| `_files -/` | 仅目录 | `'--dir=[output dir]:directory:_files -/'` |
-| `{_values 'tag' a b c}` | 在 action 内调用 | 通过 `{ ... }` 表达式使用 |
-| `:message:` | 无补全 | `'1:name:()'` 或仅 `'1:name:'` |
-
-### 描述文本
-
-- 子命令描述使用现在时：`'cmd:Do something'`（`Do` 大写）
-- 选项描述：首字母小写（除非是完整句子）：`'--verbose[enable verbose mode]'`
-- 描述保持简洁，不超过 60 字符
-
-### 参数编号格式
-
-- `1:` — 第一个必需参数
-- `::` — 可选参数
-- `*::` — 重复参数
-
-示例：
-```zsh
-_arguments \
-  '1:command:->cmds' \
-  '::optional_arg:(a b c)' \
-  '*::files:_files'
-```
-
-## 输出/保存
-
-- 将生成的文件写入仓库的 `src/_<commandname>` 路径
-- 完成后显示文件路径和简短摘要
-- 提示用户可以：
-  - `unfunction _<commandname> && autoload -U _<commandname>` 来重新加载
-  - 或者 `rm -f ~/.zcompdump && compinit` 来重新生成缓存
+- 生成前务必对照真实 `--help` 输出，避免凭记忆编写过时选项。
+- 对于已有官方高质量补全的知名工具（bat、rg、fd、eza 等），优先建议用户使用官方脚本，或在官方基础上做最小增量修改。
+- 测试时至少验证：命令后直接 Tab（文件/子命令）、选项后 Tab、带参数选项的值补全。
