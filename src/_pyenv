@@ -1,0 +1,184 @@
+#compdef pyenv
+# ------------------------------------------------------------------------------
+# Description
+# -----------
+#
+# Completion script for pyenv (https://github.com/pyenv/pyenv).
+#
+# ------------------------------------------------------------------------------
+# Authors
+# -------
+#
+# * Claude (generated from pyenv --help)
+#
+# ------------------------------------------------------------------------------
+
+_pyenv_versions() {
+  local -a versions
+  versions=(${${(f)"$(pyenv versions --bare 2>/dev/null)"}:gs/^  *//})
+  _describe -t versions 'Python version' versions
+}
+
+_pyenv_shim_commands() {
+  local -a shim_cmds
+  shim_cmds=(${${(f)"$(pyenv shims --short 2>/dev/null)"}})
+  _describe -t commands 'executable' shim_cmds
+}
+
+_pyenv() {
+  local curcontext="$curcontext" ret=1
+  local -a state line
+  typeset -A opt_args
+
+  local -a commands
+  commands=(
+    'commands:List all available pyenv commands'
+    'exec:Run an executable with the selected Python version'
+    'global:Set or show the global Python version(s)'
+    'help:Display help for a command'
+    'hooks:List hook scripts for a given pyenv command'
+    'init:Configure the shell environment for pyenv'
+    'install:Install a Python version using python-build'
+    'latest:Print the latest installed or known version with the given prefix'
+    'local:Set or show the local application-specific Python version(s)'
+    'prefix:Display prefixes for Python versions'
+    'rehash:Rehash pyenv shims'
+    'root:Display the root directory where versions and shims are kept'
+    'shell:Set or show the shell-specific Python version'
+    'shims:List existing pyenv shims'
+    'uninstall:Uninstall Python versions'
+    'version:Show the current Python version(s) and its origin'
+    'version-file:Detect the file that sets the current pyenv version'
+    'version-name:Show the current Python version'
+    'version-origin:Explain how the current Python version is set'
+    'versions:List all Python versions available to pyenv'
+    'whence:List all Python versions that contain the given executable'
+    'which:Display the full path to an executable'
+  )
+
+  _arguments -C \
+    '1: :->cmds' \
+    '*:: :->args' && ret=0
+
+  case $state in
+    (cmds)
+      _describe -t commands 'pyenv command' commands && ret=0
+      ;;
+    (args)
+      case $words[1] in
+        (commands)
+          _arguments \
+            '--sh[List commands in sh format]' \
+            '--no-sh[List commands without sh format]' && ret=0
+          ;;
+        (exec)
+          _arguments '*::arguments: _normal' && ret=0
+          ;;
+        (global)
+          _arguments '*::version:_pyenv_versions' && ret=0
+          ;;
+        (help)
+          _arguments \
+            '--usage[Show only usage line]' \
+            '1: :->pyenv-subcommands' && ret=0
+          ;;
+        (hooks)
+          _arguments '1: :->pyenv-subcommands' && ret=0
+          ;;
+        (init)
+          _arguments \
+            '(-)--path[Print paths only]' \
+            '--no-push-path[Do not push path]' \
+            '--detect-shell[Auto-detect shell]' \
+            '--no-rehash[Skip rehashing shims]' \
+            '1:shell:(bash zsh fish ksh)' && ret=0
+          ;;
+        (install)
+          _arguments \
+            '(-l --list)'{-l,--list}'[List all available versions]' \
+            '(-f --force)'{-f,--force}'[Install even if already installed]' \
+            '(-s --skip-existing)'{-s,--skip-existing}'[Skip if version already installed]' \
+            '(-k --keep)'{-k,--keep}'[Keep source tree after installation]' \
+            '(-p --patch)'{-p,--patch}'[Apply a patch from stdin before building]' \
+            '(-v --verbose)'{-v,--verbose}'[Verbose mode]' \
+            '--version[Show version of python-build]' \
+            '(-g --debug)'{-g,--debug}'[Build a debug version]' \
+            '*::version:_pyenv_versions' && ret=0
+          ;;
+        (latest)
+          _arguments \
+            '(-k --known)'{-k,--known}'[Select from all known versions instead of installed]' \
+            '1:version prefix:' && ret=0
+          ;;
+        (local)
+          _arguments \
+            '--unset[Unset the local Python version]' \
+            '*::version:_pyenv_versions' && ret=0
+          ;;
+        (prefix)
+          _arguments '*::version:_pyenv_versions' && ret=0
+          ;;
+        (rehash)
+          _arguments && ret=0
+          ;;
+        (root)
+          _arguments && ret=0
+          ;;
+        (shell)
+          _arguments \
+            '--unset[Unset the shell Python version]' \
+            '1:version: _alternative "versions:Python version:_pyenv_versions" "restore:restore previous:(-)"' \
+            '*::version:_pyenv_versions' && ret=0
+          ;;
+        (shims)
+          _arguments '--short[List shims in short format]' && ret=0
+          ;;
+        (uninstall)
+          _arguments \
+            '(-f --force)'{-f,--force}'[Remove without prompting for confirmation]' \
+            '*::version:_pyenv_versions' && ret=0
+          ;;
+        (version|version-name|version-origin)
+          _arguments && ret=0
+          ;;
+        (version-file)
+          _arguments '1:directory:_files -/' && ret=0
+          ;;
+        (versions)
+          _arguments \
+            '--bare[List version numbers only]' \
+            '--skip-aliases[Skip aliases]' \
+            '--skip-envs[Skip envs]' && ret=0
+          ;;
+        (whence)
+          _arguments \
+            '--path[Show path to executable]' \
+            '1:command:_pyenv_shim_commands' && ret=0
+          ;;
+        (which)
+          _arguments \
+            '--nosystem[Do not search in system environment]' \
+            '1:command:_pyenv_shim_commands' && ret=0
+          ;;
+      esac
+
+      case $state in
+        (pyenv-subcommands)
+          _describe -t commands 'pyenv command' commands && ret=0
+          ;;
+      esac
+      ;;
+  esac
+
+  return ret
+}
+
+_pyenv "$@"
+
+# Local Variables:
+# mode: Shell-Script
+# sh-indentation: 2
+# indent-tabs-mode: nil
+# sh-basic-offset: 2
+# End:
+# vim: ft=zsh sw=2 ts=2 et

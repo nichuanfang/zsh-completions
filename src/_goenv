@@ -1,0 +1,466 @@
+#compdef goenv
+# ------------------------------------------------------------------------------
+# Description
+# -----------
+#
+# Completion script for goenv (https://github.com/go-nv/goenv).
+#
+# ------------------------------------------------------------------------------
+# Authors
+# -------
+#
+# * Claude (generated from goenv --help)
+#
+# ------------------------------------------------------------------------------
+
+_goenv_versions() {
+  local -a versions
+  versions=(${${(f)"$(goenv versions --bare 2>/dev/null)"}})
+  _describe -t versions 'Go version' versions
+}
+
+_goenv_shim_commands() {
+  local -a shim_cmds
+  shim_cmds=(${${(f)"$(goenv shims --short 2>/dev/null)"}})
+  _describe -t commands 'executable' shim_cmds
+}
+
+_goenv_commands() {
+  local -a cmds
+  cmds=(
+    'alias:Create or list version aliases'
+    'cache:Manage goenv caches'
+    'ci-setup:Configure goenv for CI/CD environments'
+    'commands:List all available goenv commands'
+    'compare:Compare two Go versions side-by-side'
+    'completion:Generate shell completion script'
+    'completions:List available completions for a command'
+    'current:Show the current Go version'
+    'doctor:Diagnose goenv installation and configuration issues'
+    'exec:Execute a command with the selected Go version'
+    'explain:Explain why a particular Go version is active'
+    'explore:Discover goenv commands by category'
+    'get-started:Show getting started guide for new users'
+    'global:Set or show the global Go version'
+    'help:Display help for a command'
+    'hooks:Manage declarative hooks configuration'
+    'info:Show detailed information about a Go version'
+    'init:Configure the shell environment for goenv'
+    'install:Install a Go version'
+    'installed:Display an installed Go version'
+    'inventory:List installed Go versions and tools'
+    'list:List installed Go versions'
+    'local:Set or show the local Go version'
+    'prefix:Display the installation prefix for a Go version'
+    'prompt:Display active Go version for shell prompt'
+    'refresh:Clear caches and fetch fresh version data'
+    'rehash:Rehash goenv shims'
+    'root:Display the root directory where versions are installed'
+    'sbom:Generate Software Bill of Materials for projects'
+    'setup:Automatic first-time setup for goenv'
+    'shims:List existing goenv shims'
+    'status:Show goenv status and configuration'
+    'tools:Manage Go tools per version'
+    'unalias:Remove a version alias'
+    'uninstall:Uninstall a Go version'
+    'update:Update goenv to the latest version'
+    'use:Install and set a Go version'
+    'version:Show the current Go version'
+    'versions:List all installed Go versions'
+    'vscode:Manage VS Code integration'
+    'whence:List all Go versions that contain the given executable'
+    'which:Display the full path to an executable'
+  )
+  _describe -t commands 'goenv command' cmds
+}
+
+_goenv() {
+  local curcontext="$curcontext" ret=1
+  local -a state line
+  typeset -A opt_args
+
+  _arguments -C \
+    '1: :->cmds' \
+    '*:: :->args' && ret=0
+
+  case $state in
+    (cmds)
+      _goenv_commands && ret=0
+      ;;
+    (args)
+      case $words[1] in
+        # === Getting Started ===
+        (doctor)
+          _arguments \
+            '--json[Output results in JSON format]' \
+            '--fail-on=[Exit on specified level]:level:(error warning)' \
+            '--fix[Interactively fix detected issues]' && ret=0
+          ;;
+        (explain)
+          _arguments \
+            '(-v --verbose)'{-v,--verbose}'[Show additional context and resolution details]' && ret=0
+          ;;
+        (explore)
+          _arguments '1:category:(versions getting-started shell diagnostics integrations advanced)' && ret=0
+          ;;
+        (get-started)
+          _arguments && ret=0
+          ;;
+        (setup)
+          _arguments \
+            '--dry-run[Show what would be done without making changes]' \
+            '--non-interactive[Disable all interactive prompts]' \
+            '--shell=[Force specific shell]:shell:(bash zsh fish powershell cmd)' \
+            '--skip-shell[Skip shell profile setup]' \
+            '--skip-vscode[Skip VS Code integration setup]' \
+            '--verify[Run doctor checks after setup]' \
+            '(-y --yes)'{-y,--yes}'[Auto-accept all prompts]' && ret=0
+          ;;
+        (status)
+          _arguments && ret=0
+          ;;
+
+        # === Version Management ===
+        (current)
+          _arguments \
+            '--file[Show only the file that sets the version]' \
+            '(-v --verbose)'{-v,--verbose}'[Show detailed information about how version is set]' && ret=0
+          ;;
+        (install)
+          _arguments \
+            '(-l --list)'{-l,--list}'[List all available versions]' \
+            '(-f --force)'{-f,--force}'[Install even if already installed]' \
+            '(-s --skip-existing)'{-s,--skip-existing}'[Skip if version already installed]' \
+            '(-k --keep)'{-k,--keep}'[Keep source tree after installation]' \
+            '(-p --patch)'{-p,--patch}'[Apply a patch from stdin before building]' \
+            '--verbose[Verbose mode]' \
+            '(-q --quiet)'{-q,--quiet}'[Disable progress bar]' \
+            '--version[Show version of go-build]' \
+            '(-g --debug)'{-g,--debug}'[Build a debug version]' \
+            '*::version:_goenv_versions' && ret=0
+          ;;
+        (list)
+          _arguments \
+            '(-b --bare)'{-b,--bare}'[Display bare version numbers only]' \
+            '--json[Output in JSON format]' \
+            '(-r --remote)'{-r,--remote}'[List available versions from golang.org]' \
+            '--skip-aliases[Skip aliases]' \
+            '--stable[Show only stable releases]' && ret=0
+          ;;
+        (uninstall)
+          _arguments \
+            '--all[Uninstall all versions matching the given prefix]' \
+            '*::version:_goenv_versions' && ret=0
+          ;;
+        (use)
+          _arguments \
+            '(-f --force)'{-f,--force}'[Force reinstall even if already installed]' \
+            '(-g --global)'{-g,--global}'[Set as global version instead of local]' \
+            '(-q --quiet)'{-q,--quiet}'[Suppress progress output]' \
+            '--vscode[Also configure VS Code workspace]' \
+            '--vscode-env-vars[Use environment variables in VS Code settings]' \
+            '(-y --yes)'{-y,--yes}'[Auto-confirm installation prompts]' \
+            '1:version: _alternative "versions:Go version:_goenv_versions" "latest:latest stable:latest"' && ret=0
+          ;;
+
+        # === Tool Management ===
+        (sbom)
+          case $words[2] in
+            (attest)
+              _arguments '*:: :' && ret=0
+              ;;
+            (ci)
+              _arguments '*:: :' && ret=0
+              ;;
+            (compliance)
+              _arguments '*:: :' && ret=0
+              ;;
+            (diff)
+              _arguments '*:: :' && ret=0
+              ;;
+            (drift)
+              _arguments '*:: :' && ret=0
+              ;;
+            (hash)
+              _arguments '*:: :' && ret=0
+              ;;
+            (hooks)
+              _arguments '*:: :' && ret=0
+              ;;
+            (policy)
+              _arguments '*:: :' && ret=0
+              ;;
+            (project)
+              _arguments \
+                '--tool=[SBOM tool to use]:tool:(cyclonedx-gomod syft)' \
+                '--format=[Output format]:format:(cyclonedx-json cyclonedx-xml spdx-json spdx-tv)' \
+                '--output=[Output file]:output file:_files' \
+                '--image=[Container image to scan]' && ret=0
+              ;;
+            (scan)
+              _arguments '*:: :' && ret=0
+              ;;
+            (*)
+              _arguments \
+                '1:sbom command:(attest ci compliance diff drift hash hooks policy project scan)' && ret=0
+              ;;
+          esac
+          ;;
+        (tools)
+          case $words[2] in
+            (install)
+              _arguments \
+                '--all[Install for all Go versions]' \
+                '1:tool spec:' && ret=0
+              ;;
+            (uninstall)
+              _arguments \
+                '--all[Uninstall from all Go versions]' \
+                '1:tool name:' && ret=0
+              ;;
+            (list)
+              _arguments '--all[List tools for all versions]' && ret=0
+              ;;
+            (status)
+              _arguments && ret=0
+              ;;
+            (outdated)
+              _arguments && ret=0
+              ;;
+            (update)
+              _arguments '1:tool name:' && ret=0
+              ;;
+            (sync-tools)
+              _arguments \
+                '1:source version:_goenv_versions' \
+                '2:target version:_goenv_versions' && ret=0
+              ;;
+            (default)
+              _arguments && ret=0
+              ;;
+            (default-tools)
+              _arguments && ret=0
+              ;;
+            (*)
+              _arguments \
+                '1:tools command:(install uninstall list status outdated update sync-tools default default-tools)' && ret=0
+              ;;
+          esac
+          ;;
+        # === Shell Integration ===
+        (init)
+          _arguments \
+            '--no-rehash[Skip rehashing shims]' \
+            '1:shell:(bash zsh fish ksh powershell cmd)' && ret=0
+          ;;
+        (prompt)
+          case $words[2] in
+            (config)
+              _arguments && ret=0
+              ;;
+            (*)
+              _arguments \
+                '--cache-ttl=[Cache TTL in seconds]:seconds:' \
+                '--format=[Format string with %s placeholder]:format string:' \
+                '--go-project-only[Show only in Go projects]' \
+                '--icon=[Icon/emoji to prepend]:icon:' \
+                '--no-system[Do not show system Go]' \
+                '--prefix=[Prefix before version]:prefix:' \
+                '--suffix=[Suffix after version]:suffix:' \
+                '1:prompt command:(config)' && ret=0
+              ;;
+          esac
+          ;;
+        (rehash)
+          _arguments && ret=0
+          ;;
+
+        # === Diagnostics & Maintenance ===
+        (cache)
+          case $words[2] in
+            (status)
+              _arguments && ret=0
+              ;;
+            (clean)
+              _arguments && ret=0
+              ;;
+            (migrate)
+              _arguments && ret=0
+              ;;
+            (info)
+              _arguments && ret=0
+              ;;
+            (*)
+              _arguments \
+                '1:cache command:(status clean migrate info)' && ret=0
+              ;;
+          esac
+          ;;
+        (refresh)
+          _arguments '--verbose[Show detailed output]' && ret=0
+          ;;
+
+        # === IDE & CI Integration ===
+        (ci-setup)
+          _arguments \
+            '--shell=[Output format]:shell:(bash zsh fish powershell github gitlab)' \
+            '--verbose[Show detailed recommendations]' \
+            '--install[Two-phase mode: install Go versions for caching]' \
+            '--from-file[Read versions from file]' \
+            '--skip-rehash[Skip rehashing during installation]' && ret=0
+          ;;
+        (vscode)
+          case $words[2] in
+            (doctor)   _arguments && ret=0 ;;
+            (init)     _arguments && ret=0 ;;
+            (revert)   _arguments && ret=0 ;;
+            (setup)    _arguments && ret=0 ;;
+            (status)   _arguments && ret=0 ;;
+            (sync)     _arguments && ret=0 ;;
+            (*)
+              _arguments \
+                '1:vscode command:(doctor init revert setup status sync)' && ret=0
+              ;;
+          esac
+          ;;
+
+        # === Advanced Commands ===
+        (exec)
+          _arguments '*::arguments: _normal' && ret=0
+          ;;
+        (shims)
+          _arguments '--short[List shims in short format]' && ret=0
+          ;;
+        (whence)
+          _arguments \
+            '--path[Show path to executable]' \
+            '1:command:_goenv_shim_commands' && ret=0
+          ;;
+        (which)
+          _arguments \
+            '1:command:_goenv_shim_commands' && ret=0
+          ;;
+
+        # === Meta Commands ===
+        (inventory)
+          case $words[2] in
+            (go)
+              _arguments \
+                '--json[Output as JSON]' \
+                '--checksums[Include SHA256 checksums]' && ret=0
+              ;;
+            (*)
+              _arguments \
+                '1:inventory command:(go)' && ret=0
+              ;;
+          esac
+          ;;
+        (update)
+          _arguments \
+            '(-c --check)'{-c,--check}'[Check for updates without installing]' \
+            '(-f --force)'{-f,--force}'[Force update even if already up-to-date]' && ret=0
+          ;;
+
+        # === Legacy Commands ===
+        (global)
+          _arguments '1:version:_goenv_versions' && ret=0
+          ;;
+        (local)
+          _arguments \
+            '--unset[Unset the local Go version]' \
+            '1:version:_goenv_versions' && ret=0
+          ;;
+        (version)
+          _arguments && ret=0
+          ;;
+        (versions)
+          _arguments \
+            '--bare[List version numbers only]' \
+            '--skip-aliases[Skip showing system Go as an alias]' \
+            '--used[Scan current directory tree for version usage]' \
+            '--depth=[Maximum scan depth]:depth:(1 2 3 4 5)' \
+            '--json[Output in JSON format]' && ret=0
+          ;;
+
+        # === Additional Commands ===
+        (alias)
+          _arguments \
+            '1:alias name:' \
+            '2:version:' && ret=0
+          ;;
+        (commands)
+          _arguments \
+            '--sh[List commands in sh format]' \
+            '--no-sh[List commands without sh format]' && ret=0
+          ;;
+        (compare)
+          _arguments \
+            '1:version1:_goenv_versions' \
+            '2:version2:_goenv_versions' && ret=0
+          ;;
+        (completion)
+          _arguments \
+            '(-i --install)'{-i,--install}'[Install completion script automatically]' \
+            '1:shell:(bash zsh fish powershell)' && ret=0
+          ;;
+        (completions)
+          _arguments \
+            '1:command:_goenv_commands' \
+            '*::arguments:' && ret=0
+          ;;
+        (help)
+          _arguments \
+            '--usage[Show only usage line]' \
+            '1: :->goenv-subcommands' && ret=0
+          ;;
+        (hooks)
+          case $words[2] in
+            (init)     _arguments && ret=0 ;;
+            (list)     _arguments && ret=0 ;;
+            (validate) _arguments && ret=0 ;;
+            (test)     _arguments && ret=0 ;;
+            (*)
+              _arguments \
+                '1:hooks command:(init list validate test)' && ret=0
+              ;;
+          esac
+          ;;
+        (info)
+          _arguments \
+            '--json[Output in JSON format]' \
+            '1:version:_goenv_versions' && ret=0
+          ;;
+        (installed)
+          _arguments '1:version:_goenv_versions' && ret=0
+          ;;
+        (prefix)
+          _arguments '1:version:_goenv_versions' && ret=0
+          ;;
+        (root)
+          _arguments && ret=0
+          ;;
+        (unalias)
+          _arguments '1:alias name:' && ret=0
+          ;;
+      esac
+
+      case $state in
+        (goenv-subcommands)
+          _goenv_commands && ret=0
+          ;;
+      esac
+      ;;
+  esac
+
+  return ret
+}
+
+_goenv "$@"
+
+# Local Variables:
+# mode: Shell-Script
+# sh-indentation: 2
+# indent-tabs-mode: nil
+# sh-basic-offset: 2
+# End:
+# vim: ft=zsh sw=2 ts=2 et
